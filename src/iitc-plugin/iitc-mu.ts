@@ -1,5 +1,3 @@
-import './interfaces';
-
 // ==UserScript==
 // @id iitc-mu
 // @name IITC Plugin: MU collector for the MU map
@@ -11,6 +9,14 @@ import './interfaces';
 // @match https://intel.ingress.com/intel*
 // @grant none
 // ==/UserScript==
+
+declare module 'my-config' {
+  global {
+    const GM_info: {
+      script: { version: string; name: string; description: string };
+    };
+  }
+}
 
 interface IITC extends Window {
   plugin: Function;
