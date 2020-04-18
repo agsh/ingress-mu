@@ -11,6 +11,7 @@ const commonRules = {
   'no-case-declarations': 0,
   'no-shadow': 0,
   'no-multi-assign': 0,
+  'no-param-reassign': 0,
   'import/no-cycle': 0, // IMPORTANT
 };
 
@@ -39,7 +40,7 @@ module.exports = {
 
         '@typescript-eslint/camelcase': 0,
         '@typescript-eslint/interface-name-prefix': 0,
-
+        '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0, // TRY: Remove this
         '@typescript-eslint/ban-ts-ignore': 0, // TRY: Remove this
       },
