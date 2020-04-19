@@ -10,7 +10,7 @@
 // @grant none
 // ==/UserScript==
 
-declare module 'my-config' {
+declare module 'iitc-mu' {
   global {
     const GM_info: {
       script: { version: string; name: string; description: string };
@@ -19,9 +19,16 @@ declare module 'my-config' {
 }
 
 interface IITC extends Window {
-  plugin: Function;
+  plugin: any;
   bootPlugins: Function[];
   iitcLoaded: boolean;
+  addHook: (event: string, handler: (data: any) => void) => void;
+  portals: Record<string, any>;
+  getPortalLinks: (id: string) => any;
+  links: Record<
+    string,
+    { options: { data: { oGuid: string; dGuid: string } } }
+  >;
 }
 
 // Wrapper function that will be stringified and injected
@@ -34,6 +41,9 @@ function wrapper(plugin_info: any): void {
   // and other plugins assume the same.
   if (typeof _window.plugin !== 'function') _window.plugin = (): void => {};
 
+  // use own namespace for plugin
+  _window.plugin.mu = {};
+
   // Name of the IITC build for first-party plugins
   plugin_info.buildName = 'mu';
 
@@ -43,9 +53,244 @@ function wrapper(plugin_info: any): void {
   // ID/name of the plugin
   plugin_info.pluginId = 'mu';
 
+  function findLinkedPortals(
+    latFrom: number,
+    lngFrom: number,
+    latTo: number,
+    lngTo: number,
+  ): [string, string] | undefined {
+    let from: any;
+    let to: any;
+    for (const [id, point] of Object.entries(_window.portals)) {
+      if (
+        (point as any)._latlng.lat === latFrom / 1e6 &&
+        (point as any)._latlng.lng === lngFrom / 1e6
+      ) {
+        from = id;
+      } else if (
+        (point as any)._latlng.lat === latTo / 1e6 &&
+        (point as any)._latlng.lng === lngTo / 1e6
+      ) {
+        to = id;
+      }
+      if (from && to) {
+        break;
+      }
+    }
+    if (from && to) {
+      return [from, to];
+    }
+    return undefined;
+  }
+
+  function waitForPortals(cb: Function): void {
+    if (Object.keys(_window.portals).length > 0) {
+      cb(_window.portals);
+    } else {
+      setTimeout(waitForPortals, 1000, cb);
+    }
+  }
+
+  function getLinkedPortals(links: { in: any[]; out: any[] }): string[] {
+    return [
+      ...links.in.map((inLink) => _window.links[inLink].options.data.oGuid),
+      ...links.out.map((outLink) => _window.links[outLink].options.data.dGuid),
+    ];
+  }
+
+  interface Portal {
+    address: string;
+    latE6: number;
+    lngE6: number;
+    name: string;
+    plain: string;
+    team: string;
+  }
+
+  interface Link {
+    type: 'link';
+    dateTime: number;
+    from: Portal;
+    to: Portal;
+    player: string;
+  }
+
+  interface FieldData extends Link {
+    num: number;
+    mu: number;
+  }
+
+  interface Field {
+    type: 'field';
+    dateTime: number;
+    from: Portal;
+    mu: number;
+  }
+
+  _window.plugin.mu.processFields = (rawPlexts: any[][]): void => {
+    const fieldsAndLinks = rawPlexts.filter((rawPlext) => {
+      const action = rawPlext[2].plext.markup[1][1].plain;
+      return action === ' created a Control Field @' || action === ' linked ';
+    });
+    const uniqueFieldsAndLinks: Record<string, Link | Field> = {};
+    fieldsAndLinks.forEach((fieldOrLink) => {
+      const { markup } = fieldOrLink[2].plext;
+      if (markup.length === 5) {
+        uniqueFieldsAndLinks[fieldOrLink[0]] = {
+          type: 'link',
+          dateTime: fieldOrLink[1],
+          from: markup[2][1],
+          to: markup[4][1],
+          player: markup[0][1].plain,
+        };
+      } else {
+        uniqueFieldsAndLinks[fieldOrLink[0]] = {
+          type: 'field',
+          dateTime: fieldOrLink[1],
+          from: markup[2][1],
+          mu: parseInt(markup[4][1].plain, 10),
+        };
+      }
+    });
+    const actionsByTime: Record<string, Array<Link | Field>> = {};
+    Object.values(uniqueFieldsAndLinks).forEach((fieldOrLink) => {
+      actionsByTime[fieldOrLink.dateTime]
+        ? actionsByTime[fieldOrLink.dateTime].push(fieldOrLink)
+        : (actionsByTime[fieldOrLink.dateTime] = [fieldOrLink]);
+    });
+    const links = Object.values(actionsByTime)
+      .filter((action) => action.length > 1)
+      .map(
+        (action): FieldData => {
+          let mu = 0;
+          let link!: Link;
+          action.forEach((linkOrField) => {
+            if (linkOrField.type === 'field') {
+              mu += linkOrField.mu;
+            } else {
+              link = linkOrField;
+            }
+          });
+          return {
+            ...link,
+            mu,
+            num: action.length - 1,
+          };
+        },
+      );
+    // console.log('links', links);
+    // console.log('waiting');
+    waitForPortals(() => {
+      // console.log('done');
+      const portals = links
+        .map((data) => {
+          if (!data.from) {
+            console.log(`data when from is undefined`, data);
+          }
+          const result = findLinkedPortals(
+            data.from.latE6,
+            data.from.lngE6,
+            data.to.latE6,
+            data.to.lngE6,
+          );
+          if (!result) {
+            return null;
+          }
+          const [fromPortalId, toPortalId]: [string, string] = result;
+          const instance = {
+            num: data.num,
+            from: getLinkedPortals(_window.getPortalLinks(fromPortalId)),
+            fromPortal: data.from,
+            fromPortalId,
+            to: getLinkedPortals(_window.getPortalLinks(toPortalId)),
+            toPortal: data.to,
+            toPortalId,
+            mu: data.mu,
+          };
+          // console.log('instance', instance);
+          const commonPoints: string[] = [];
+          for (const id of instance.from) {
+            if (instance.to.includes(id)) {
+              commonPoints.push(id);
+            }
+          }
+          // console.log(commonPoints.length, data.num);
+          if (commonPoints.length !== data.num) {
+            return null;
+          }
+          let sourcePoints;
+          switch (commonPoints.length) {
+            case 2:
+              sourcePoints = [
+                fromPortalId,
+                commonPoints[0],
+                toPortalId,
+                commonPoints[1],
+              ];
+              break;
+            case 1:
+              sourcePoints = [fromPortalId, commonPoints[0], toPortalId];
+              break;
+            default:
+              console.log('strange common points', commonPoints);
+              return null;
+          }
+          const coordinates = sourcePoints.map(
+            (id) => _window.portals[id].toGeoJSON().geometry.coordinates,
+          );
+          return {
+            type: 'Feature',
+            properties: {
+              mu: data.mu,
+              dateTime: data.dateTime,
+              player: data.player,
+              from: data.from.plain,
+              to: data.to.plain,
+            },
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[...coordinates, coordinates[0]]],
+            },
+          };
+        })
+        .filter((a) => a !== null);
+      console.log(portals);
+      portals.forEach((portal) => {
+        $.ajax({
+          type: 'POST',
+          url: 'http://localhost:13666/mu',
+          data: JSON.stringify(portal),
+          contentType: 'application/json',
+          dataType: 'json',
+        })
+          .then((data) => console.log('posted', data, portal))
+          .catch(() => console.error('error posting', portal));
+      });
+    });
+  };
+
   // The entry point for this plugin.
-  function setup() {
-    alert('Hello, IITC!');
+  function setup(): void {
+    let plexts: any[] = [];
+    _window.addHook(
+      'publicChatDataAvailable',
+      (data: {
+        raw: Record<string, any>;
+        result: Array<Array<any>>;
+        processed: any;
+      }) => {
+        // console.log('hi', data.result);
+        plexts.push(data.result);
+        _window.plugin.mu.processFields(data.result);
+      },
+    );
+    _window.addHook('mapDataRefreshEnd', () => {
+      plexts.forEach((plext) => {
+        console.log('process', plext);
+        _window.plugin.mu.processFields(plext);
+      });
+      plexts = [];
+    });
   }
 
   // Add an info property for IITC's plugin system
