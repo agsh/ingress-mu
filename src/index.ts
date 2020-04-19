@@ -3,28 +3,42 @@ import bodyParser from 'body-parser';
 import { MongoClient } from 'mongodb';
 // eslint-disable-next-line import/no-unresolved
 import { GeoJSON } from 'geojson';
+import cors from 'cors';
 
 const port = 13666;
 const app = express();
+app.use(bodyParser.json());
+app.use(cors());
+app.use(express.static(__dirname));
 
 (async (): Promise<void> => {
   const client = await MongoClient.connect('mongodb://localhost', {
     useUnifiedTopology: true,
   });
   const db = client.db('ingress');
-  const mu = await db.createCollection<{ mu: number; geo: GeoJSON }>('mu');
-  await mu.createIndex({ geo: '2dsphere' });
-  // await mu.insertOne({
-  //   mu: 0,
-  //   geo: {
-  //     type: 'Point',
-  //     coordinates: [125.6, 10.1],
-  //   },
-  // });
+  const mu = await db.createCollection<{
+    type: string;
+    properties: object;
+    geometry: GeoJSON;
+  }>('mu');
+  await mu.createIndex({ geometry: '2dsphere' }, { unique: true });
 
   app.post('/mu', async (req, res) => {
-    await mu.insertOne(req.body);
-    res.end();
+    console.log(req.body);
+    try {
+      await mu.insertOne(req.body);
+    } catch (e) {
+      // polygon already exists
+      return res.send({ ok: false });
+    }
+    return res.send({ ok: true });
+  });
+  app.get('/mu', async (_req, res) => {
+    const fields = await mu.find({}).toArray();
+    res.send({
+      type: 'FeatureCollection',
+      features: fields,
+    });
   });
   app.listen(port, () => console.log(`Listening on ${port}`));
 })().catch((err) => console.error(err));
