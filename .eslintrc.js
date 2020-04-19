@@ -12,6 +12,7 @@ const commonRules = {
   'no-shadow': 0,
   'no-multi-assign': 0,
   'no-param-reassign': 0,
+  'no-alert': 0,
   'import/no-cycle': 0, // IMPORTANT
 };
 

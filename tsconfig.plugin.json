@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target": "ES5",
+    "target": "ES2017",
     "module": "None",
     "sourceMap": true,
     "strict": true,
     "outDir": "./build/plugin",
-    "outFile": "./build/plugin/iitc.js",
+    "outFile": "./build/plugin/iitc-mu.js",
     "sourceRoot": "./src/",
     "rootDir": "./src/",
     "forceConsistentCasingInFileNames": true,
