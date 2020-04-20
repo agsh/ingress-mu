@@ -171,22 +171,23 @@ function wrapper(plugin_info: any): void {
               link = linkOrField;
             }
           });
+          if (!link) {
+            console.log(`data when link is undefined`, action);
+          }
           return {
             ...link,
             mu,
             num: action.length - 1,
           };
         },
-      );
+      )
+      .filter((link) => typeof link.from !== 'undefined');
     // console.log('links', links);
     // console.log('waiting');
     waitForPortals(() => {
       // console.log('done');
       const portals = links
         .map((data) => {
-          if (!data.from) {
-            console.log(`data when from is undefined`, data);
-          }
           const result = findLinkedPortals(
             data.from.latE6,
             data.from.lngE6,
