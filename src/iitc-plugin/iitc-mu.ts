@@ -29,6 +29,7 @@ interface IITC extends Window {
     string,
     { options: { data: { oGuid: string; dGuid: string } } }
   >;
+  postAjax: Function;
 }
 
 // Wrapper function that will be stringified and injected
@@ -52,6 +53,23 @@ function wrapper(plugin_info: any): void {
 
   // ID/name of the plugin
   plugin_info.pluginId = 'mu';
+
+  _window.plugin.mu.tes = function (text: string) {
+    const prefix = text.slice(1, 3);
+    const passcodes = text
+      .slice(1, -1)
+      .split(prefix)
+      .filter((a) => a)
+      .map((text) => prefix + text);
+    passcodes.forEach((passcode) => {
+      _window.postAjax(
+        'redeemReward',
+        { passcode },
+        console.log,
+        console.error,
+      );
+    });
+  };
 
   function findLinkedPortals(
     latFrom: number,
