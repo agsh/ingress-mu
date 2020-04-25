@@ -39,18 +39,21 @@ function wrapper(plugin_info) {
         }
         return result;
     }
-    _window.plugin.tes.redeem = function (passcodes) {
-        // passcodes.forEach((passcode) => {
-        //   _window.postAjax(
-        //     'redeemReward',
-        //     { passcode },
-        //     console.log,
-        //     console.error,
-        //   );
-        // });
-        console.log(passcodes);
-        _window.postAjax('redeemReward', { passcode: passcodes[0] }, console.log, console.error);
-    };
+    async function redeem(passcode) {
+        return new Promise((resolve) => {
+            _window.postAjax('redeemReward', { passcode }, (result) => {
+                if (result.error) {
+                    console.error(result);
+                    return resolve(false);
+                }
+                console.log(result);
+                return resolve(true);
+            }, (err) => {
+                console.log(err);
+                resolve(false);
+            });
+        });
+    }
     async function check() {
         if (!_window.plugin.tes.try) {
             clearInterval(_window.plugin.tes.interval);
@@ -61,16 +64,22 @@ function wrapper(plugin_info) {
             console.log(link); // TODO
             if (!link)
                 return;
+            _window.plugin.tes.try = false;
             const pdf = await pdfjsLib.getDocument(link.href).promise;
-            const passcodes = (await Promise.all([...new Array(pdf.numPages)].map((_, i) => (async () => {
+            const allPasscodes = (await Promise.all([...new Array(pdf.numPages)].map((_, i) => (async () => {
                 const page = await pdf.getPage(i + 1);
                 const content = await page.getTextContent();
                 return content.items
                     .map((a) => a.str)
                     .filter((a) => a.length > 3);
             })()))).flat();
-            console.log(passcodes);
-            _window.plugin.tes.redeem(getRandom(passcodes, 20));
+            console.log(allPasscodes);
+            const passcodes = getRandom(allPasscodes, 20);
+            let check = true;
+            while (check) {
+                const passcode = passcodes.pop();
+                check = !(await redeem(passcode)) && passcodes.length > 0;
+            }
         });
     }
     // The entry point for this plugin.
