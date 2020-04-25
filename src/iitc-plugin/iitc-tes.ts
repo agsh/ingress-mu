@@ -57,6 +57,9 @@ function wrapper(plugin_info: any): void {
   plugin_info.pluginId = 'tes';
 
   function getRandom<T>(arr: Array<T>, n: number): Array<T> {
+    if (arr.length <= n) {
+      return arr;
+    }
     const result = new Array(n);
     let len = arr.length;
     const taken = new Array(len);
@@ -141,12 +144,23 @@ function wrapper(plugin_info: any): void {
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.worker.js';
       },
     );
+    const input = $(
+      '<div style=""><textarea style="width: 100%;box-sizing: border-box;"></textarea></div>',
+    ).appendTo($('#updatestatus'));
+    input.children('textarea').on('keydown', function (e) {
+      if (e.key === 'Enter') {
+        console.log((this as HTMLTextAreaElement).value);
+      }
+    });
     _window.plugin.tes.try = true;
     _window.plugin.tes.url = prompt(
       'Enter url of the new tesselation round forum topic',
       'https://community.ingress.com/en/discussion/10599/tessera-round-10-perpetua-unmasked-new/p1',
-    )!.trim();
-    _window.plugin.tes.interval = setInterval(check, 3000);
+    );
+    if (_window.plugin.tes.url) {
+      _window.plugin.tes.url = _window.plugin.tes.url.trim();
+      _window.plugin.tes.interval = setInterval(check, 3000);
+    }
   }
 
   // Add an info property for IITC's plugin system
