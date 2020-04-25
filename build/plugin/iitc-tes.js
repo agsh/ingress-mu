@@ -61,23 +61,31 @@ function wrapper(plugin_info) {
         }
         const a13 = $('<div/>').load(_window.plugin.tes.url, async () => {
             const link = [...a13.get(0).querySelectorAll('a').values()].filter((a) => a.innerText === 'here')[0];
-            console.log(link); // TODO
             if (!link)
                 return;
+            console.log(link.href); // TODO
             _window.plugin.tes.try = false;
-            const pdf = await pdfjsLib.getDocument(link.href).promise;
+            const query = await fetch(link.href);
+            const data = await query.arrayBuffer();
+            console.log(data);
+            const pdf = await pdfjsLib.getDocument(data).promise;
             const allPasscodes = (await Promise.all([...new Array(pdf.numPages)].map((_, i) => (async () => {
                 const page = await pdf.getPage(i + 1);
                 const content = await page.getTextContent();
                 return content.items
                     .map((a) => a.str)
-                    .filter((a) => a.length > 3);
+                    .join('')
+                    .split(' ')
+                    .filter((s) => s.length > 3);
             })()))).flat();
+            if (allPasscodes.length < 20)
+                return;
             console.log(allPasscodes);
-            const passcodes = getRandom(allPasscodes, 20);
+            const passcodes = getRandom(allPasscodes, 40);
             let check = true;
             while (check) {
                 const passcode = passcodes.pop();
+                console.log(`trying to redeem '${passcode}'`);
                 check = !(await redeem(passcode)) && passcodes.length > 0;
             }
         });
@@ -89,7 +97,7 @@ function wrapper(plugin_info) {
                 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.worker.js';
         });
         _window.plugin.tes.try = true;
-        _window.plugin.tes.url = prompt('Enter url of the new tesselation round forum topic', 'https://community.ingress.com/en/discussion/10473/tessera-round-10-mind-palace/p1');
+        _window.plugin.tes.url = prompt('Enter url of the new tesselation round forum topic', 'https://community.ingress.com/en/discussion/10599/tessera-round-10-perpetua-unmasked-new/p1').trim();
         _window.plugin.tes.interval = setInterval(check, 3000);
     }
     // Add an info property for IITC's plugin system

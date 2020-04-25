@@ -16,11 +16,11 @@
     "watch": true,
     "declaration": true
   },
-  "lib": ["es5", "es2015.promise", "dom", "es2015"],
+  "lib": ["es2019", "dom"],
   "exclude": [
     "node_modules"
   ],
   "include": [
-    "src/iitc-plugin/*"
+    "src/iitc-plugin/iitc-mu.ts"
   ]
 }
