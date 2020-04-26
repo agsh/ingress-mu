@@ -92,6 +92,16 @@ function wrapper(plugin_info: any): void {
     });
   }
 
+  async function redeemPasscodes(allPasscodes: string[]): Promise<void> {
+    const passcodes = getRandom(allPasscodes, 40);
+    let check = true;
+    while (check) {
+      const passcode = passcodes.pop();
+      console.log(`trying to redeem '${passcode}'`);
+      check = !(await redeem(passcode!)) && passcodes.length > 0;
+    }
+  }
+
   async function check() {
     if (!_window.plugin.tes.try) {
       clearInterval(_window.plugin.tes.interval);
@@ -125,13 +135,7 @@ function wrapper(plugin_info: any): void {
       ).flat();
       if (allPasscodes.length < 20) return;
       console.log(allPasscodes);
-      const passcodes = getRandom(allPasscodes, 40);
-      let check = true;
-      while (check) {
-        const passcode = passcodes.pop();
-        console.log(`trying to redeem '${passcode}'`);
-        check = !(await redeem(passcode)) && passcodes.length > 0;
-      }
+      redeemPasscodes(allPasscodes);
     });
   }
 
@@ -147,9 +151,12 @@ function wrapper(plugin_info: any): void {
     const input = $(
       '<div style=""><textarea style="width: 100%;box-sizing: border-box;"></textarea></div>',
     ).appendTo($('#updatestatus'));
-    input.children('textarea').on('keydown', function (e) {
+    input.children('textarea').on('keydown', async function (e) {
       if (e.key === 'Enter') {
-        console.log((this as HTMLTextAreaElement).value);
+        const text = (this as HTMLTextAreaElement).value;
+        const passcodes = text.split('\n').filter((a) => a.length > 2);
+        console.log(passcodes);
+        await redeemPasscodes(passcodes);
       }
     });
     _window.plugin.tes.try = true;
