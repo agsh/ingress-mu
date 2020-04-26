@@ -29,6 +29,9 @@ function wrapper(plugin_info) {
     // ID/name of the plugin
     plugin_info.pluginId = 'tes';
     function getRandom(arr, n) {
+        if (arr.length <= n) {
+            return arr;
+        }
         const result = new Array(n);
         let len = arr.length;
         const taken = new Array(len);
@@ -53,6 +56,15 @@ function wrapper(plugin_info) {
                 resolve(false);
             });
         });
+    }
+    async function redeemPasscodes(allPasscodes) {
+        const passcodes = getRandom(allPasscodes, 40);
+        let check = true;
+        while (check) {
+            const passcode = passcodes.pop();
+            console.log(`trying to redeem '${passcode}'`);
+            check = !(await redeem(passcode)) && passcodes.length > 0;
+        }
     }
     async function check() {
         if (!_window.plugin.tes.try) {
@@ -81,13 +93,7 @@ function wrapper(plugin_info) {
             if (allPasscodes.length < 20)
                 return;
             console.log(allPasscodes);
-            const passcodes = getRandom(allPasscodes, 40);
-            let check = true;
-            while (check) {
-                const passcode = passcodes.pop();
-                console.log(`trying to redeem '${passcode}'`);
-                check = !(await redeem(passcode)) && passcodes.length > 0;
-            }
+            redeemPasscodes(allPasscodes);
         });
     }
     // The entry point for this plugin.
@@ -96,9 +102,21 @@ function wrapper(plugin_info) {
             pdfjsLib.GlobalWorkerOptions.workerSrc =
                 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.worker.js';
         });
+        const input = $('<div style=""><textarea style="width: 100%;box-sizing: border-box;"></textarea></div>').appendTo($('#updatestatus'));
+        input.children('textarea').on('keydown', async function (e) {
+            if (e.key === 'Enter') {
+                const text = this.value;
+                const passcodes = text.split('\n').filter((a) => a.length > 2);
+                console.log(passcodes);
+                await redeemPasscodes(passcodes);
+            }
+        });
         _window.plugin.tes.try = true;
-        _window.plugin.tes.url = prompt('Enter url of the new tesselation round forum topic', 'https://community.ingress.com/en/discussion/10599/tessera-round-10-perpetua-unmasked-new/p1').trim();
-        _window.plugin.tes.interval = setInterval(check, 3000);
+        _window.plugin.tes.url = prompt('Enter url of the new tesselation round forum topic', 'https://community.ingress.com/en/discussion/10599/tessera-round-10-perpetua-unmasked-new/p1');
+        if (_window.plugin.tes.url) {
+            _window.plugin.tes.url = _window.plugin.tes.url.trim();
+            _window.plugin.tes.interval = setInterval(check, 3000);
+        }
     }
     // Add an info property for IITC's plugin system
     setup.info = plugin_info;
