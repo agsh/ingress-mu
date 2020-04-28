@@ -21,6 +21,6 @@
     "node_modules"
   ],
   "include": [
-    "src/iitc-plugin/iitc-tes.ts"
+    "src/plugin/iitc-tes.ts"
   ]
 }

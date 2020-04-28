@@ -12,9 +12,12 @@ app.use(cors());
 app.use(express.static(__dirname));
 
 (async (): Promise<void> => {
-  const client = await MongoClient.connect('mongodb://localhost', {
-    useUnifiedTopology: true,
-  });
+  const client = await MongoClient.connect(
+    'mongodb+srv://admin:adminingress@cluster0-jy0ep.mongodb.net/test?retryWrites=true&w=majority',
+    {
+      useUnifiedTopology: true,
+    },
+  );
   const db = client.db('ingress');
   const mu = await db.createCollection<{
     type: string;
@@ -39,7 +42,7 @@ app.use(express.static(__dirname));
       });
     } catch (e) {
       // polygon already exists
-      console.error(e);
+      // console.error(e);
       return res.send({ ok: false });
     }
     return res.send({ ok: true });

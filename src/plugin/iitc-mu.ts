@@ -15,6 +15,7 @@ declare module 'iitc-mu' {
     const GM_info: {
       script: { version: string; name: string; description: string };
     };
+    const pdfjsLib: any;
   }
 }
 
@@ -290,6 +291,25 @@ function wrapper(plugin_info: any): void {
 
   // The entry point for this plugin.
   function setup(): void {
+    /*
+    a13 = $('<div/>').load('https://community.ingress.com/en/discussion/10473/tessera-round-10-mind-palace/p1', async () => {
+      const link = [...a13.get(0).querySelectorAll('a').values()].filter(a => a.innerText == 'here')[0];
+      console.log(link);
+      if (!link) return;
+
+      const pdf = await pdfjsLib.getDocument(link.href);
+      const page = await pdf.getPage(1);
+      const content = await page.getTextContent();
+      console.log(content);
+    })
+    */
+    $.getScript(
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.js',
+      () => {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.worker.js';
+      },
+    );
     let plexts: any[] = [];
     _window.addHook(
       'publicChatDataAvailable',

@@ -2,12 +2,16 @@
   "name": "ingress-mu",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "build/index.js",
+  "engines": {
+    "node": "12.x"
+  },
   "scripts": {
     "build": "tsc --build tsconfig.json && tsc --build tsconfig.plugin.json && tsc --build tsconfig.tes.json",
     "start": "npm run build && node build/index.js",
     "tes": "npm run build && node build/tes.js",
-    "t": "tsc --build tsconfig.tes.json"
+    "t": "tsc --build tsconfig.tes.json",
+    "home": "copy \"src\\plugin\\iitc-home.js\" \"build/plugin\""
   },
   "keywords": [],
   "author": "",
@@ -17,6 +21,7 @@
     "@types/node": "^13.7.1",
     "@typescript-eslint/eslint-plugin": "^2.20.0",
     "@typescript-eslint/parser": "^2.20.0",
+    "copy": "^0.3.2",
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-config-airbnb-typescript": "^7.0.0",

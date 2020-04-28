@@ -14,6 +14,7 @@ const commonRules = {
   'no-param-reassign': 0,
   'no-alert': 0,
   'no-plusplus': 0,
+  'no-debugger': 0,
   'import/no-cycle': 0, // IMPORTANT
 };
 
@@ -23,6 +24,7 @@ module.exports = {
   env: {
     node: true,
     jest: true,
+    browser: true,
   },
   rules: commonRules,
 
